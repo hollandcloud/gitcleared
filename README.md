@@ -31,11 +31,12 @@ production deploy holding short of the runway is the top strip whichever repo
 it belongs to, because that is the one burning fuel.
 
 **No clearance GitHub wouldn't honour.** A pull request is only cleared to land
-when its checks are green *and* GitHub reports no review or branch rule in the
-way, and the merge is pinned to the commit GitCleared last had on radar — so a
-push that arrives between sweeps is refused, not merged unseen. *Start a
-workflow* lists only workflows that declare `workflow_dispatch`, with the
-inputs each one's file declares.
+when its checks are green, GitHub reports no review or branch rule in the way,
+and you have write access to the repository. Your pull requests to other
+people's projects are listed, but get no Merge button. A merge is pinned to the
+commit GitCleared last had on radar, so a push that arrives between sweeps is
+refused, not merged unseen. *Start a workflow* lists only workflows that declare
+`workflow_dispatch`, with the inputs each one's file declares.
 
 ## Why there's a tower
 

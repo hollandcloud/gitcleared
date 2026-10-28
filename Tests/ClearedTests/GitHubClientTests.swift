@@ -305,6 +305,8 @@ struct QueueReadingTests {
                 Fixture.pullRequest(number: 1),
                 Fixture.pullRequest(number: 2, mergeState: "BLOCKED", review: "REVIEW_REQUIRED"),
                 Fixture.pullRequest(number: 3, mergeCommit: false, rebase: false),
+                Fixture.pullRequest(number: 4, permission: "READ"),
+                Fixture.pullRequest(number: 5, permission: nil),
                 "{}",
                 "null",
             ]))
@@ -313,12 +315,14 @@ struct QueueReadingTests {
 
         let prs = try await client.myOpenPullRequests()
 
-        #expect(prs.map(\.number) == [1, 2, 3])
+        #expect(prs.map(\.number) == [1, 2, 3, 4, 5])
         #expect(prs[0].isReadyToMerge)
         #expect(prs[0].headSHA == "abc1")
         #expect(prs[1].blockReason == "needs review")
         #expect(prs[2].allowedMethods == [.squash])
         #expect(prs[2].mergeMethod(preferring: .merge) == .squash)
+        #expect(prs[3].blockReason == "no write access")
+        #expect(prs[4].isReadyToMerge)
     }
 
     @Test("only enabled workflows with a manual trigger can be started")

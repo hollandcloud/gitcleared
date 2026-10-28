@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2
+
+### Fixed
+
+- **Merge was offered on pull requests you cannot merge.** The list is every
+  open pull request you opened, including ones to projects you only contribute
+  to. When one of those was green, it got a Merge button that GitHub then
+  refused. It now sits under *In flight* as *no write access*.
+
 ## 0.4.1
 
 ### Changed
