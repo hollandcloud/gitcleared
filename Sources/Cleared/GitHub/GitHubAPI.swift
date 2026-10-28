@@ -144,6 +144,7 @@ extension GitHubClient {
                     let mergeCommitAllowed: Bool
                     let rebaseMergeAllowed: Bool
                     let viewerDefaultMergeMethod: String?
+                    let viewerPermission: String?
                 }
                 struct Commits: Decodable, Sendable {
                     struct CommitNode: Decodable, Sendable {
@@ -184,6 +185,7 @@ extension GitHubClient {
                 repository {
                   name owner { login }
                   squashMergeAllowed mergeCommitAllowed rebaseMergeAllowed viewerDefaultMergeMethod
+                  viewerPermission
                 }
                 commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
               }
@@ -233,8 +235,21 @@ extension GitHubClient {
                 reviewDecision: ReviewDecision(graphQL: node.reviewDecision),
                 isInMergeQueue: node.isInMergeQueue ?? false,
                 allowedMethods: allowed,
-                repoDefaultMethod: MergeMethod(graphQL: repository.viewerDefaultMergeMethod)
+                repoDefaultMethod: MergeMethod(graphQL: repository.viewerDefaultMergeMethod),
+                viewerCanMerge: Self.canMerge(permission: repository.viewerPermission)
             )
+        }
+    }
+
+    /// Whether a repository permission lets you merge. A pull request you
+    /// opened against someone else's project carries your name but not your
+    /// write access, and GitHub refuses the merge. Only an explicit read-level
+    /// answer withholds the button; a missing one is not treated as a no.
+    nonisolated static func canMerge(permission: String?) -> Bool? {
+        switch permission {
+        case "ADMIN", "MAINTAIN", "WRITE": true
+        case "READ", "TRIAGE": false
+        default: nil
         }
     }
 

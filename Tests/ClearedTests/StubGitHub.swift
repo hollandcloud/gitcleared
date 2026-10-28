@@ -177,7 +177,8 @@ enum Fixture {
         squash: Bool = true,
         mergeCommit: Bool = true,
         rebase: Bool = true,
-        defaultMethod: String = "SQUASH"
+        defaultMethod: String = "SQUASH",
+        permission: String? = "ADMIN"
     ) -> String {
         """
         {"number": \(number), "title": "feat: thing \(number)", "url": "https://github.com/acme/web/pull/\(number)",
@@ -186,7 +187,8 @@ enum Fixture {
          "reviewDecision": \(review.map { "\"\($0)\"" } ?? "null"), "isInMergeQueue": false,
          "repository": {"name": "web", "owner": {"login": "acme"}, "squashMergeAllowed": \(squash),
                         "mergeCommitAllowed": \(mergeCommit), "rebaseMergeAllowed": \(rebase),
-                        "viewerDefaultMergeMethod": "\(defaultMethod)"},
+                        "viewerDefaultMergeMethod": "\(defaultMethod)",
+                        "viewerPermission": \(permission.map { "\"\($0)\"" } ?? "null")},
          "commits": {"nodes": [{"commit": {"statusCheckRollup": \(rollup.map { "{\"state\": \"\($0)\"}" } ?? "null")}}]}}
         """
     }

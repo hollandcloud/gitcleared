@@ -28,7 +28,8 @@ struct MergeReadinessTests {
         review: ReviewDecision? = nil,
         queued: Bool = false,
         allowed: [MergeMethod] = [],
-        repoDefault: MergeMethod? = nil
+        repoDefault: MergeMethod? = nil,
+        canMerge: Bool? = nil
     ) -> PullRequestSummary {
         PullRequestSummary(
             repo: RepoRef(owner: "o", name: "r"),
@@ -44,7 +45,8 @@ struct MergeReadinessTests {
             reviewDecision: review,
             isInMergeQueue: queued,
             allowedMethods: allowed,
-            repoDefaultMethod: repoDefault
+            repoDefaultMethod: repoDefault,
+            viewerCanMerge: canMerge
         )
     }
 
@@ -97,6 +99,31 @@ struct MergeReadinessTests {
     @Test("an approved pull request in a clean state is ready", arguments: [MergeState.clean, .hasHooks, .unstable])
     func approvedIsReady(state: MergeState) {
         #expect(pr(state: state, review: .approved).isReadyToMerge)
+    }
+
+    @Test("a pull request to a project you only contribute to has no merge button")
+    func noWriteAccess() {
+        let contribution = pr(canMerge: false)
+        #expect(!contribution.isReadyToMerge)
+        #expect(contribution.blockReason == "no write access")
+        // Failing checks are still the more useful thing to say...
+        #expect(pr(checks: .failure, canMerge: false).blockReason == "checks failed")
+        // ...but not "still checking": GitHub's verdict would not change the answer.
+        #expect(pr(mergeable: "unknown", state: .unknown, canMerge: false).blockReason == "no write access")
+    }
+
+    @Test("write access, or no word on it, leaves a green pull request ready", arguments: [true, nil] as [Bool?])
+    func writeAccessOrUnknown(canMerge: Bool?) {
+        #expect(pr(canMerge: canMerge).isReadyToMerge)
+    }
+
+    @Test("GitHub's permission levels map onto merging", arguments: [
+        ("ADMIN", true as Bool?), ("MAINTAIN", true), ("WRITE", true),
+        ("TRIAGE", false), ("READ", false), ("NONE", nil),
+    ])
+    func permissionLevels(level: String, expected: Bool?) {
+        #expect(GitHubClient.canMerge(permission: level) == expected)
+        #expect(GitHubClient.canMerge(permission: nil) == nil)
     }
 
     @Test("a pull request already in the merge queue has no merge button")

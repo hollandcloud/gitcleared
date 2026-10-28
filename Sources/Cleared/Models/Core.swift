@@ -127,6 +127,10 @@ struct PullRequestSummary: Identifiable, Sendable, Hashable {
     /// Merge methods the repository permits. Empty when unknown.
     let allowedMethods: [MergeMethod]
     let repoDefaultMethod: MergeMethod?
+    /// Whether this account may merge into the repository at all. False for a
+    /// pull request to someone else's project, where only its maintainers can
+    /// merge. Nil when GitHub did not say.
+    let viewerCanMerge: Bool?
 
     init(
         repo: RepoRef,
@@ -143,7 +147,8 @@ struct PullRequestSummary: Identifiable, Sendable, Hashable {
         reviewDecision: ReviewDecision? = nil,
         isInMergeQueue: Bool = false,
         allowedMethods: [MergeMethod] = [],
-        repoDefaultMethod: MergeMethod? = nil
+        repoDefaultMethod: MergeMethod? = nil,
+        viewerCanMerge: Bool? = nil
     ) {
         self.repo = repo
         self.number = number
@@ -160,6 +165,7 @@ struct PullRequestSummary: Identifiable, Sendable, Hashable {
         self.isInMergeQueue = isInMergeQueue
         self.allowedMethods = allowedMethods
         self.repoDefaultMethod = repoDefaultMethod
+        self.viewerCanMerge = viewerCanMerge
     }
 
     var id: String { "\(repo.id)#\(number)" }
@@ -184,6 +190,11 @@ struct PullRequestSummary: Identifiable, Sendable, Hashable {
         case .reviewRequired: return "needs review"
         case .approved, nil: break
         }
+        // After checks and reviews, which are still worth knowing about a pull
+        // request to someone else's project; before GitHub's own merge verdict,
+        // which it may not have worked out for a repository you cannot push to
+        // and which would not change the answer.
+        if viewerCanMerge == false { return "no write access" }
         switch mergeState {
         case .behind: return "behind base branch"
         case .blocked: return "blocked by branch rules"
