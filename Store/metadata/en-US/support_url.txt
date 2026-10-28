@@ -1,1 +1,1 @@
-https://github.com/hollandcloud/cleared/blob/main/docs/support.md
+https://github.com/hollandcloud/gitcleared/blob/main/docs/support.md

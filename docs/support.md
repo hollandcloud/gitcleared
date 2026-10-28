@@ -5,7 +5,7 @@ listing.
 
 ## Getting help or reporting a bug
 
-Open an issue: **https://github.com/hollandcloud/cleared/issues**
+Open an issue: **https://github.com/hollandcloud/gitcleared/issues**
 
 It helps to include:
 
