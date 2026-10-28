@@ -18,6 +18,7 @@ Then:
     Scripts/asc.py version 1.1.1            # open a new version once the last one is on sale
     Scripts/asc.py text                     # name, subtitle, description, keywords, URLs
     Scripts/asc.py info                     # category and the content-rights answer
+    Scripts/asc.py pricing                  # free, everywhere but China mainland (one-time)
                                           # release notes come from
                                           # release_notes-<PLATFORM>.txt where present
     Scripts/asc.py screenshots              # upload Store/screenshots/<platform>/
@@ -409,6 +410,93 @@ def push_info() -> None:
                 }
             })
             print(f"  primary category: {category}")
+
+
+# Territories the app is deliberately not offered in. China mainland requires an ICP
+# filing number before an app can be listed there, which this app does not have.
+EXCLUDED_TERRITORIES = {"CHN"}
+
+
+def push_pricing() -> None:
+    """Free, in every territory except the excluded ones, and in new territories as Apple adds them.
+
+    Both are one-time set-ups on a new app — neither exists until something creates it,
+    and App Store Connect will not accept a submission without them — so this creates
+    whichever is missing and leaves an existing one alone rather than guessing at an edit.
+    """
+    app = app_id()
+
+    def exists(path: str) -> bool:
+        try:
+            return bool(call("GET", path, tolerate=True).get("data"))
+        except ASCError as error:
+            if error.status == 404:
+                return False
+            raise
+
+    if exists(f"/v1/apps/{app}/appPriceSchedule"):
+        print("  price: already set, left alone")
+    else:
+        free = [
+            point
+            for point in call(
+                "GET",
+                f"/v1/apps/{app}/appPricePoints?filter[territory]=USA&limit=5"
+                "&fields[appPricePoints]=customerPrice",
+            )["data"]
+            if float(point["attributes"]["customerPrice"]) == 0
+        ]
+        if not free:
+            sys.exit("no free price point found for the USA")
+        call("POST", "/v1/appPriceSchedules", {
+            "data": {
+                "type": "appPriceSchedules",
+                "relationships": {
+                    "app": {"data": {"type": "apps", "id": app}},
+                    "baseTerritory": {"data": {"type": "territories", "id": "USA"}},
+                    "manualPrices": {"data": [{"type": "appPrices", "id": "${free}"}]},
+                },
+            },
+            "included": [{
+                "type": "appPrices",
+                "id": "${free}",
+                "attributes": {"startDate": None},
+                "relationships": {
+                    "appPricePoint": {"data": {"type": "appPricePoints", "id": free[0]["id"]}}
+                },
+            }],
+        })
+        print("  price: free")
+
+    if exists(f"/v1/apps/{app}/appAvailabilityV2"):
+        print("  availability: already set, left alone")
+    else:
+        territories = [
+            t["id"] for t in call("GET", "/v1/territories?limit=200")["data"]
+            if t["id"] not in EXCLUDED_TERRITORIES
+        ]
+        call("POST", "/v2/appAvailabilities", {
+            "data": {
+                "type": "appAvailabilities",
+                "attributes": {"availableInNewTerritories": True},
+                "relationships": {
+                    "app": {"data": {"type": "apps", "id": app}},
+                    "territoryAvailabilities": {
+                        "data": [{"type": "territoryAvailabilities", "id": f"${{{t}}}"} for t in territories]
+                    },
+                },
+            },
+            "included": [
+                {
+                    "type": "territoryAvailabilities",
+                    "id": f"${{{t}}}",
+                    "attributes": {"available": True},
+                    "relationships": {"territory": {"data": {"type": "territories", "id": t}}},
+                }
+                for t in territories
+            ],
+        })
+        print(f"  availability: {len(territories)} territories, not {', '.join(sorted(EXCLUDED_TERRITORIES))}")
 
 
 def reviewer_notes() -> str | None:
@@ -884,6 +972,8 @@ def main() -> None:
         push_age_rating()
     elif command == "info":
         push_info()
+    elif command == "pricing":
+        push_pricing()
     elif command == "version":
         if len(sys.argv) < 3:
             sys.exit("usage: asc.py version <version-string>")
