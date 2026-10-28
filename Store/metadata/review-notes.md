@@ -1,10 +1,10 @@
 # App Review notes
 
-Paste the block below into **App Review Information → Notes**, or run
-`Scripts/asc.py review`, which sends it. The demo account fields stay empty:
-there is no username and password. The app signs in with a GitHub token, which
-goes in the notes — **replace the placeholder on the TOKEN line before
-submitting** (see "What still needs you" in `Store/README.md`).
+The block between the `---` fences is what App Review reads. `Scripts/asc.py
+review` sends it, with the token filled in from the `GITCLEARED_REVIEW_TOKEN`
+environment variable. The token is never written into this file. The demo
+account fields stay empty: the app signs in with a GitHub token, not a username
+and password.
 
 ---
 
@@ -13,30 +13,34 @@ launch, look at the right-hand side of the menu bar for its icon and click it
 to open the panel.
 
 SIGNING IN. The app works against a GitHub account, so it needs a GitHub
-personal access token. One for a test account is below. On first launch the
-panel shows "Connect with a personal access token": paste the token into the
-field and click Connect.
+personal access token. The token below belongs to the developer and is limited
+to one demo repository, github.com/hollandcloud/gitcleared-demo, which exists
+for this review. On first launch the panel shows "Connect with a personal
+access token": paste the token into the field and click Connect.
 
 TOKEN: <replace with a token for the review account before submitting>
 
-WHAT YOU SHOULD SEE. Once connected, the panel lists what is waiting on that
-account, in this order:
+WHAT YOU SHOULD SEE. Within a few seconds of connecting:
 
-• Holding — a deployment waiting at an environment gate, with a Clear button.
-  Clicking Clear approves the deployment on GitHub.
-• Ready to merge — an open pull request whose checks have passed, with a Merge
-  button.
-• In flight — open pull requests that cannot be merged yet, each with the
-  reason.
-• Failed — recent failed workflow runs, each with a Re-run button.
+• Holding — "gitcleared-demo · Deploy", waiting at the production environment.
+  Click Clear to approve it; the deployment then runs on GitHub (it only prints
+  a line, nothing is really deployed) and leaves the list.
+• Ready to merge — "Say when the status was last checked", with a Merge button.
+  Merging it merges that pull request on GitHub.
+• In flight — pull requests that cannot be merged yet, each with the reason:
+  a draft in the demo repository, and possibly a pull request the developer has
+  open on a public open-source project, shown without a Merge button.
 
-If the test account has nothing waiting, the panel shows "All clear". That is
-the normal resting state, not an error.
+Click any row to open it on GitHub. Right-click a row for Copy Link, and on a
+held deployment, Reject.
 
-OTHER CONTROLS, along the bottom of the panel: refresh, start a workflow (the
-play icon — choose a repository, then a workflow), Settings (the gear, or
-Command-comma), and Quit (the power icon, or Command-Q). Right-clicking a row
-offers Open on GitHub and Copy Link, and on a held deployment, Reject.
+START A WORKFLOW. Click the play icon at the bottom of the panel, choose
+hollandcloud/gitcleared-demo, then "Deploy". The sheet shows the inputs the
+workflow declares. Run starts it on GitHub; it then waits at production and
+appears under Holding.
+
+OTHER CONTROLS, along the bottom of the panel: refresh, Settings (the gear, or
+Command-comma), and Quit (the power icon, or Command-Q).
 
 NOTIFICATIONS. The app asks for notification permission after connecting. It
 uses them only to say that a deployment has started holding. Declining changes
@@ -54,17 +58,42 @@ analytics and no advertising.
 
 ---
 
-## What the reviewer needs that only the owner can provide
+## Before submitting
 
-A token. GitHub tokens cannot be created through the API, and one for a
-personal account should not be handed to App Review. The practical route:
+**1. Make the review token** — on GitHub, as `hollandcloud`:
+https://github.com/settings/personal-access-tokens/new
 
-1. Create a throwaway GitHub account for review, or use an existing test one.
-2. Give it one repository with an environment that requires that account as a
-   reviewer, a workflow that deploys to it, and an open pull request with a
-   passing check — so there is something Holding and something Ready to merge.
-3. Create a fine-grained token scoped to that repository only, with Actions,
-   Deployments, Contents (read and write) and Pull requests (read).
-4. Put it on the TOKEN line above and run `Scripts/asc.py review`.
+| Setting | Value |
+|---|---|
+| Token name | GitCleared App Review |
+| Expiration | 90 days — long enough to outlast a review and a resubmission |
+| Resource owner | hollandcloud |
+| Repository access | Only select repositories → `gitcleared-demo` |
+| Actions | Read and write |
+| Deployments | Read and write |
+| Contents | Read and write |
+| Pull requests | Read-only |
 
-Revoke the token once the review is over.
+Store it in Infisical. It is the only copy outside GitHub.
+
+**2. Put a deployment on hold.** Approving the held one uses it up, and GitHub
+drops a waiting run after 30 days:
+
+```sh
+gh workflow run deploy.yml -R hollandcloud/gitcleared-demo
+```
+
+Run it again after any review that cleared the last one, and before a
+resubmission.
+
+**3. Send the notes with the token, then submit:**
+
+```sh
+GITCLEARED_REVIEW_TOKEN=<the token> Scripts/asc.py review
+Scripts/asc.py submit      # refuses while the notes still have the placeholder
+```
+
+If the reviewer merges the ready pull request, open another one in the demo
+repository before resubmitting, so there is still something to merge.
+
+Revoke the token once the app is approved.

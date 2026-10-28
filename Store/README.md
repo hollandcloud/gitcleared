@@ -49,16 +49,19 @@ reason. Changing course is cheap: the name comes from `PRODUCT_NAME` in
 wordmark on the screenshots, which `make screenshots` redraws.
 
 **2. The reviewer needs a way in.** GitCleared does nothing until it has a GitHub
-token, so App Review has to be given one. `metadata/review-notes.md` has a
-placeholder on its TOKEN line and the steps for making a suitable token: a
-throwaway account, one repository, a fine-grained token scoped to it. Submitting
-with the placeholder still in place gets a rejection for "unable to sign in".
+token, so App Review is given one: the developer's own, limited to the demo
+repository `hollandcloud/gitcleared-demo`, which holds a deployment waiting for
+approval and a pull request ready to merge. `metadata/review-notes.md` has the
+token's exact settings and the steps before each submission. The token is filled
+in at push time from `GITCLEARED_REVIEW_TOKEN` and never written into this
+repository, and `Scripts/asc.py submit` refuses while the placeholder is still in
+App Store Connect.
 
 ## What still needs you
 
 | Thing | Why it is not done |
 |---|---|
-| The two decisions above | They are yours. |
+| The review token | It has to be made on GitHub by its owner. See `metadata/review-notes.md`. |
 | App Privacy answers | The questionnaire is browser-only. `metadata/app-privacy.md` has the answer and the reasoning. |
 | Price set to Free | The description says free and open source. The pricing page has to agree. |
 | Submitting for review | Deliberately left to a person. `Scripts/asc.py submit` exists for when you are ready. |

@@ -499,6 +499,12 @@ def push_pricing() -> None:
         print(f"  availability: {len(territories)} territories, not {', '.join(sorted(EXCLUDED_TERRITORIES))}")
 
 
+# Stands in, in review-notes.md, for the GitHub token App Review signs in with. The real
+# token is supplied at push time and is never written into the repository.
+TOKEN_PLACEHOLDER = "<replace with a token for the review account before submitting>"
+TOKEN_VARIABLE = "GITCLEARED_REVIEW_TOKEN"
+
+
 def reviewer_notes() -> str | None:
     """The reviewer-facing block out of `review-notes.md`.
 
@@ -510,7 +516,11 @@ def reviewer_notes() -> str | None:
     if not path.exists():
         return None
     parts = path.read_text().split("\n---\n")
-    return parts[1].strip() if len(parts) > 2 else None
+    if len(parts) <= 2:
+        return None
+    notes = parts[1].strip()
+    token = os.environ.get(TOKEN_VARIABLE, "").strip()
+    return notes.replace(TOKEN_PLACEHOLDER, token) if token else notes
 
 
 CONTACT_FILE = STORE / "review-contact.local.json"
@@ -546,6 +556,10 @@ def push_review() -> None:
     notes = reviewer_notes()
     if notes:
         contact["notes"] = notes
+        if TOKEN_PLACEHOLDER in notes:
+            print(f"  note: no review token yet — set {TOKEN_VARIABLE} and run `review` again before submitting")
+        else:
+            print("  review token included")
 
     for platform, version_id in editable_versions().items():
         existing = call(
@@ -739,6 +753,17 @@ def submit_for_review() -> None:
     existing submission for the platform is reused rather than duplicated.
     """
     app = app_id()
+
+    # A reviewer who cannot sign in rejects the build, so refuse to submit while the
+    # notes App Review will read still carry the placeholder instead of a token.
+    for platform, version_id in editable_versions().items():
+        detail = call("GET", f"/v1/appStoreVersions/{version_id}/appStoreReviewDetail").get("data")
+        if TOKEN_PLACEHOLDER in ((detail or {}).get("attributes", {}).get("notes") or ""):
+            sys.exit(
+                f"{platform}: the review notes still have the token placeholder. "
+                f"Set {TOKEN_VARIABLE} and run `Scripts/asc.py review` first."
+            )
+
     existing = {
         item["attributes"]["platform"]: item
         for item in call(
