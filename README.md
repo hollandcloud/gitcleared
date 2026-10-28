@@ -66,8 +66,8 @@ Requires macOS 14+, and Xcode 16+ with [XcodeGen](https://github.com/yonaskolb/X
 GitCleared is built from source:
 
 ```sh
-git clone https://github.com/hollandcloud/cleared.git
-cd cleared
+git clone https://github.com/hollandcloud/gitcleared.git
+cd gitcleared
 make install      # builds Release, copies it to /Applications, launches it
 ```
 

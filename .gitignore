@@ -38,3 +38,6 @@ Local.xcconfig
 
 # App Review contact details for Scripts/asc.py — a person's phone and email
 Store/review-contact.local.json
+
+# Python bytecode from running Scripts/asc.py
+__pycache__/

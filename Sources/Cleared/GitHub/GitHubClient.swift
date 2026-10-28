@@ -78,7 +78,7 @@ actor GitHubClient {
             config.timeoutIntervalForRequest = 20
             config.waitsForConnectivity = false
             config.httpAdditionalHeaders = [
-                "User-Agent": "\(AppEnvironment.name)/\(AppEnvironment.version) (+https://github.com/hollandcloud/cleared)",
+                "User-Agent": "\(AppEnvironment.name)/\(AppEnvironment.version) (+https://github.com/hollandcloud/gitcleared)",
             ]
             self.session = URLSession(configuration: config)
         }

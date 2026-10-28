@@ -55,6 +55,6 @@ a new date, and the change will be visible in the repository's history.
 ## Contact
 
 Questions about this policy: open an issue at
-https://github.com/hollandcloud/cleared/issues
+https://github.com/hollandcloud/gitcleared/issues
 
 GitCleared is an independent project and is not affiliated with GitHub.

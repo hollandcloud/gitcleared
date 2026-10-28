@@ -17,6 +17,7 @@ Then:
     Scripts/asc.py status                   # what ASC currently has. Run this first.
     Scripts/asc.py version 1.1.1            # open a new version once the last one is on sale
     Scripts/asc.py text                     # name, subtitle, description, keywords, URLs
+    Scripts/asc.py info                     # category and the content-rights answer
                                           # release notes come from
                                           # release_notes-<PLATFORM>.txt where present
     Scripts/asc.py screenshots              # upload Store/screenshots/<platform>/
@@ -368,6 +369,46 @@ def push_text() -> None:
 
             note = f"  (not editable yet: {', '.join(dropped)})" if dropped else ""
             print(f"  {platform}: {', '.join(attributes)}{note}")
+
+
+def read_meta(name: str) -> str | None:
+    """A field that is not per-language, from Store/metadata/<name>.txt."""
+    path = STORE / "metadata" / f"{name}.txt"
+    return path.read_text().strip() if path.exists() else None
+
+
+def push_info() -> None:
+    """App Information that is not per-language: the category, and the content-rights answer.
+
+    Both hang off the app rather than a version. The category is set on whichever
+    `appInfo` is still editable — once a version is on sale its `appInfo` is frozen and a
+    new one is opened alongside it for the next.
+    """
+    app = app_id()
+
+    rights = read_meta("content_rights")
+    if rights:
+        call("PATCH", f"/v1/apps/{app}", {
+            "data": {"type": "apps", "id": app, "attributes": {"contentRightsDeclaration": rights}}
+        })
+        print(f"  content rights: {rights}")
+
+    category = read_meta("primary_category")
+    if category:
+        for info in call("GET", f"/v1/apps/{app}/appInfos")["data"]:
+            state = info["attributes"].get("appStoreState") or info["attributes"].get("state")
+            if state not in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED"):
+                continue
+            call("PATCH", f"/v1/appInfos/{info['id']}", {
+                "data": {
+                    "type": "appInfos",
+                    "id": info["id"],
+                    "relationships": {
+                        "primaryCategory": {"data": {"type": "appCategories", "id": category}}
+                    },
+                }
+            })
+            print(f"  primary category: {category}")
 
 
 def reviewer_notes() -> str | None:
@@ -841,6 +882,8 @@ def main() -> None:
         push_review()
     elif command == "agerating":
         push_age_rating()
+    elif command == "info":
+        push_info()
     elif command == "version":
         if len(sys.argv) < 3:
             sys.exit("usage: asc.py version <version-string>")
@@ -851,6 +894,7 @@ def main() -> None:
         submit_for_review()
     elif command == "all":
         push_text()
+        push_info()
         push_screenshots()
         push_review()
         push_age_rating()
